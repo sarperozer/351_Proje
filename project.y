@@ -14,6 +14,7 @@ void yyerror(string s);
 int yylex();
 
 string output = "";
+bool constent_folded = false;
 
 map<string, int> var_map;
 map<string, string> ident_to_ident_map;
@@ -49,7 +50,6 @@ line:
 
 		output.append(out);
 		
-		var_map[$1] = atoi($3);
 		}
 	|
 	IDENT EQ subtraction SEMICOLON {
@@ -57,11 +57,17 @@ line:
 		string a = $1;
 		string b = $3;
 
+		/*if (constent_folded){
+			int c = atoi($3);
+
+			var_map[$1] = c;
+			constent_folded = false;
+		}*/
+
 		string out = a + "=" + b + ";" + "\n";
 
 		output.append(out);
 		
-		var_map[$1] = atoi($3);
 		}
 	|
 	IDENT EQ division SEMICOLON {
@@ -73,7 +79,6 @@ line:
 
 		output.append(out);
 		
-		var_map[$1] = atoi($3);
 		}
 	|
 	IDENT EQ multiplication SEMICOLON {
@@ -85,7 +90,6 @@ line:
 
 		output.append(out);
 		
-		var_map[$1] = atoi($3);
 		}
 	|
 	IDENT EQ power SEMICOLON {
@@ -97,7 +101,6 @@ line:
 
 		output.append(out);
 		
-		var_map[$1] = atoi($3);
 		}
 	;
 
@@ -108,19 +111,70 @@ declaration:
 		if(var_map.find($1) != var_map.end()){
 			var_map.erase($1);
 		}
+
+		string a = $1;
+		string b = $3;
+
+		if (ident_to_ident_map.find($3) != ident_to_ident_map.end()){
+			b = ident_to_ident_map[$3];
+		}
+
+		if(var_map.find($3) != var_map.end()) {
+			b = to_string(var_map[$3]);
+		}
+
+		string out = a + "=" + b + ";" + "\n";
+		output.append(out);
 	}
 	|
 	IDENT EQ INT {
 		var_map[$1] =  $3;
 
+		string a = $1;
+		string b = to_string($3);
+
 		if(ident_to_ident_map.find($1) != ident_to_ident_map.end()){
 			ident_to_ident_map.erase($1);
 		}
+
+		string out = a + "=" + b + ";" + "\n";
+		output.append(out);
 	}
 	;
 
 addition:
-	IDENT PLUS IDENT
+	IDENT PLUS IDENT {
+		string ident1;
+		string ident2;
+		string a;
+		string b;
+
+		if (ident_to_ident_map.find($1) != ident_to_ident_map.end()) {
+			ident1 = ident_to_ident_map[$1];
+		}
+		else
+			ident1 = $1;
+
+		if (ident_to_ident_map.find($3) != ident_to_ident_map.end()) {
+			ident2 = ident_to_ident_map[$3];
+		}
+		else
+			ident2 = $3;
+
+		a = ident1;
+		b = ident2;
+
+		if (var_map.find(ident1) != var_map.end()){
+			a = to_string(var_map[ident1]);
+		}
+
+		if (var_map.find(ident2) != var_map.end()){
+			b = to_string(var_map[ident2]);
+		}
+
+		string out = a + "+" + b;
+		$$ = out.c_str();
+	}
 	|
 	IDENT PLUS INT {
 		string ident;
@@ -131,9 +185,13 @@ addition:
 			ident = $1;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($3, "add", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			
+			int k = var_map[ident];
+			string a = to_string(k);
+			string b = to_string($3);
+
+			string out = a + "+" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($3);
@@ -151,9 +209,13 @@ addition:
 			ident = $3;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($1, "add", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+
+			int k = var_map[ident];
+			string b = to_string(k);
+			string a = to_string($1);
+
+			string out = a + "+" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($1);
@@ -165,12 +227,44 @@ addition:
 	INT PLUS INT {
 		int res = const_folding($1, "add", $3);
 		string res_str = to_string(res);
+		constent_folded = true;
 		$$ = res_str.c_str();
 		}
 	;
 
 subtraction:
-	IDENT MINUS IDENT
+	IDENT MINUS IDENT{
+		string ident1;
+		string ident2;
+		string a;
+		string b;
+
+		if (ident_to_ident_map.find($1) != ident_to_ident_map.end()) {
+			ident1 = ident_to_ident_map[$1];
+		}
+		else
+			ident1 = $1;
+
+		if (ident_to_ident_map.find($3) != ident_to_ident_map.end()) {
+			ident2 = ident_to_ident_map[$3];
+		}
+		else
+			ident2 = $3;
+
+		a = ident1;
+		b = ident2;
+
+		if (var_map.find(ident1) != var_map.end()){
+			a = to_string(var_map[ident1]);
+		}
+
+		if (var_map.find(ident2) != var_map.end()){
+			b = to_string(var_map[ident2]);
+		}
+
+		string out = a + "-" + b;
+		$$ = out.c_str();
+	}
 	|
 	IDENT MINUS INT {
 		string ident;
@@ -181,9 +275,12 @@ subtraction:
 			ident = $1;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($3, "sub", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string a = to_string(k);
+			string b = to_string($3);
+
+			string out = a + "-" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($3);
@@ -201,9 +298,12 @@ subtraction:
 			ident = $3;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($1, "sub", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string b = to_string(k);
+			string a = to_string($1);
+
+			string out = a + "-" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($1);
@@ -215,12 +315,44 @@ subtraction:
 	INT MINUS INT {
 		int res = const_folding($1, "sub", $3);
 		string res_str = to_string(res);
+		constent_folded = true;
 		$$ = res_str.c_str();
 		}
 	;
 
 multiplication:
-	IDENT MULT IDENT
+	IDENT MULT IDENT {
+		string ident1;
+		string ident2;
+		string a;
+		string b;
+
+		if (ident_to_ident_map.find($1) != ident_to_ident_map.end()) {
+			ident1 = ident_to_ident_map[$1];
+		}
+		else
+			ident1 = $1;
+
+		if (ident_to_ident_map.find($3) != ident_to_ident_map.end()) {
+			ident2 = ident_to_ident_map[$3];
+		}
+		else
+			ident2 = $3;
+
+		a = ident1;
+		b = ident2;
+
+		if (var_map.find(ident1) != var_map.end()){
+			a = to_string(var_map[ident1]);
+		}
+
+		if (var_map.find(ident2) != var_map.end()){
+			b = to_string(var_map[ident2]);
+		}
+
+		string out = a + "*" + b;
+		$$ = out.c_str();
+	}
 	|
 	IDENT MULT INT {
 		string ident;
@@ -231,9 +363,12 @@ multiplication:
 			ident = $1;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($3, "mult", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string a = to_string(k);
+			string b = to_string($3);
+
+			string out = a + "*" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($3);
@@ -251,9 +386,12 @@ multiplication:
 			ident = $3;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($1, "mult", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string b = to_string(k);
+			string a = to_string($1);
+
+			string out = a + "*" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($1);
@@ -265,12 +403,44 @@ multiplication:
 	INT MULT INT {
 		int res = const_folding($1, "mult", $3);
 		string res_str = to_string(res);
+		constent_folded = true;
 		$$ = res_str.c_str();
 		}
 	;
 
 division:
-	IDENT DIV IDENT
+	IDENT DIV IDENT {
+		string ident1;
+		string ident2;
+		string a;
+		string b;
+
+		if (ident_to_ident_map.find($1) != ident_to_ident_map.end()) {
+			ident1 = ident_to_ident_map[$1];
+		}
+		else
+			ident1 = $1;
+
+		if (ident_to_ident_map.find($3) != ident_to_ident_map.end()) {
+			ident2 = ident_to_ident_map[$3];
+		}
+		else
+			ident2 = $3;
+
+		a = ident1;
+		b = ident2;
+
+		if (var_map.find(ident1) != var_map.end()){
+			a = to_string(var_map[ident1]);
+		}
+
+		if (var_map.find(ident2) != var_map.end()){
+			b = to_string(var_map[ident2]);
+		}
+
+		string out = a + "/" + b;
+		$$ = out.c_str();
+	}
 	|
 	IDENT DIV INT {
 		string ident;
@@ -281,9 +451,12 @@ division:
 			ident = $1;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($3, "div", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string a = to_string(k);
+			string b = to_string($3);
+
+			string out = a + "/" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($3);
@@ -301,9 +474,12 @@ division:
 			ident = $3;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($1, "div", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string b = to_string(k);
+			string a = to_string($1);
+
+			string out = a + "/" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($1);
@@ -315,12 +491,44 @@ division:
 	INT DIV INT {
 		int res = const_folding($1, "div", $3);
 		string res_str = to_string(res);
+		constent_folded = true;
 		$$ = res_str.c_str();
 		}
 	;
 
 power:
-	IDENT POWER IDENT
+	IDENT POWER IDENT {
+		string ident1;
+		string ident2;
+		string a;
+		string b;
+
+		if (ident_to_ident_map.find($1) != ident_to_ident_map.end()) {
+			ident1 = ident_to_ident_map[$1];
+		}
+		else
+			ident1 = $1;
+
+		if (ident_to_ident_map.find($3) != ident_to_ident_map.end()) {
+			ident2 = ident_to_ident_map[$3];
+		}
+		else
+			ident2 = $3;
+
+		a = ident1;
+		b = ident2;
+
+		if (var_map.find(ident1) != var_map.end()){
+			a = to_string(var_map[ident1]);
+		}
+
+		if (var_map.find(ident2) != var_map.end()){
+			b = to_string(var_map[ident2]);
+		}
+
+		string out = a + "^" + b;
+		$$ = out.c_str();
+	}
 	|
 	IDENT POWER INT {
 		string ident;
@@ -331,9 +539,12 @@ power:
 			ident = $1;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($3, "power", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string a = to_string(k);
+			string b = to_string($3);
+
+			string out = a + "^" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($3);
@@ -351,9 +562,12 @@ power:
 			ident = $3;
 
 		if(var_map.find(ident) != var_map.end()){
-			int res = const_folding($1, "power", var_map[ident]);
-			string res_str = to_string(res);
-			$$ = res_str.c_str();
+			int k = var_map[ident];
+			string b = to_string(k);
+			string a = to_string($1);
+
+			string out = a + "^" + b;
+			$$ = out.c_str();
 		}
 		else{
 			string a = to_string($1);
@@ -365,6 +579,7 @@ power:
 	INT POWER INT {
 		int res = const_folding($1, "power", $3);
 		string res_str = to_string(res);
+		constent_folded = true;
 		$$ = res_str.c_str();
 		}
 	;
@@ -432,7 +647,9 @@ int main(int argc, char *argv[])
 
 	string output_file_name = str + "'s_output.txt";
 
-	ofstream output_file(output_file_name);
+	ofstream output_file;
+
+	output_file.open(output_file_name);
 
 	output_file << output;
 

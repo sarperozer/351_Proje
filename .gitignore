@@ -1,7 +1,6 @@
 input.txt
 input's_output.txt
 lex.yy.c
-Makefile
 project
 y.output
 y.tab.c
